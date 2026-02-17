@@ -1,117 +1,193 @@
 clear; clc;
+format long g;
 
-% --- 1. تعریف ورودی‌ها (طبق جدول 2 مقاله برای سیستم بانکی) ---
-% کامپوننت‌ها: 10 عدد
-% R_base: قابلیت اطمینان پایه هر کامپوننت
-R_base = [0.999, 0.974, 0.970, 0.982, 0.960, 0.999, 0.985, 0.992, 0.975, 0.964]; 
-n_components = 10;
+%% Banking-system inputs (Table 2)
+componentNames = {'C1','C2','C3','C4','C5','C6','C7','C8','C9','C10'};
+r_base = [0.999; 0.974; 0.970; 0.982; 0.960; 0.999; 0.985; 0.992; 0.975; 0.964];
+nComp = numel(r_base);
 
-% فرض پارامترهای لاندا (مقادیر فرضی برای اجرا، در واقعیت باید دقیق محاسبه شوند)
-% در اینجا فرض می‌کنیم لانداها محاسبه شده‌اند (خروجی مرحله قبل)
-Lambda = [1.0, 0.8, 0.7, 0.8, 0.8, 0.8, 0.8, 0.8, 1.0, 1.0]; 
+inputComp = 1;   % C1
+outputComp = 10; % C10
 
-% --- 2. تعریف معماری‌ها (Mapping Components to States) ---
-% طبق بخش 4.1 مقاله (Experiment):
-% - کامپوننت 2 و 3 موازی هستند (Parallel State) -> تبدیل می‌شوند به State 2
-% - کامپوننت 4 و 5 تحمل خطا (Fault Tolerance) هستند -> تبدیل می‌شوند به State 3
-% - سایر کامپوننت‌ها تکی (Sequence) هستند.
+assert(nComp == 10, 'This implementation is for the 10-component banking system.');
 
-% تعریف ساختار وضعیت‌ها (States)
-% هر سطر: [نوع_معماری, لیست_کامپوننت‌ها]
-% نوع 1: Sequence
-% نوع 2: Parallel
-% نوع 3: Interrupt Fault Tolerance (Recovery Block)
+%% 1) Component-level DTMC for Eq. (2) visitation counts
+% Transition probabilities are built from the banking-system case study
+% (Table 2 + Figure 10 flow consistency), row-stochastic for DTMC use.
+P_comp = zeros(nComp, nComp);
 
-States = {
-    1, [1];       % State 1: Component 1 (Sequence)
-    3, [4, 5];    % State 2: Components 4 & 5 (Fault Tolerance - Main & Backup)
-    2, [2, 3];    % State 3: Components 2 & 3 (Parallel)
-    1, [6];       % State 4
-    1, [7];       % State 5
-    1, [8];       % State 6
-    1, [9];       % State 7
-    1, [10];      % State 8 (Output)
-};
+P_comp(1,2) = 0.49; P_comp(1,3) = 0.51;
+P_comp(2,4) = 0.50; P_comp(2,5) = 0.50;
+P_comp(3,4) = 0.50; P_comp(3,5) = 0.50;
+P_comp(4,6) = 0.40; P_comp(4,7) = 0.40; P_comp(4,8) = 0.20;
+P_comp(5,6) = 0.40; P_comp(5,7) = 0.40; P_comp(5,8) = 0.20;
+P_comp(6,9) = 0.75; P_comp(6,10) = 0.25;
+P_comp(7,9) = 0.75; P_comp(7,10) = 0.25;
+P_comp(8,9) = 0.75; P_comp(8,10) = 0.25;
+P_comp(9,6) = 1/3;  P_comp(9,7) = 1/3;  P_comp(9,8) = 1/3;
+P_comp(10,10) = 1.0; % absorbing success component
 
-n_states = size(States, 1);
-R_States = zeros(1, n_states);
+transientComp = 1:(nComp-1);
+rowSumsComp = sum(P_comp(transientComp, :), 2);
+assert(all(abs(rowSumsComp - 1.0) < 1e-12), 'Component DTMC rows must sum to 1.');
 
-% --- 3. محاسبه قابلیت اطمینان هر وضعیت (فرمول‌های بخش 3.4) ---
-fprintf('--- محاسبه R برای وضعیت‌ها بر اساس نوع معماری ---\n');
+%% 2) Eq. (2): InS(i) = E(mu_i) via fundamental matrix N = (I - Q)^(-1)
+Q_comp = P_comp(transientComp, transientComp);
+N_comp = inv(eye(numel(transientComp)) - Q_comp);
 
-for i = 1:n_states
-    type = States{i, 1};
-    comps = States{i, 2};
-    
-    % استخراج r و lambda برای کامپوننت‌های این وضعیت
-    r_vals = R_base(comps);
-    l_vals = Lambda(comps);
-    
-    % محاسبه r_i ^ lambda_i برای هر عضو
-    r_impacted = r_vals .^ l_vals;
-    
-    switch type
-        case 1 % Sequence Batch (معادله 5)
-            % R = r ^ lambda
-            R_States(i) = r_impacted; 
-            fprintf('State %d (Seq): R = %.4f\n', i, R_States(i));
-            
-        case 2 % Parallel Batch (معادله 6)
-            % R = Product(r_i ^ lambda_i)
-            % همه باید سالم باشند تا سیستم کار کند
-            R_States(i) = prod(r_impacted);
-            fprintf('State %d (Par): Components %s -> R = %.4f\n', i, mat2str(comps), R_States(i));
-            
-        case 3 % Interrupt Fault Tolerance (معادله 7)
-            % R = 1 - Product(1 - r_i ^ lambda_i)
-            % سیستم فقط زمانی خراب می‌شود که همه خراب شوند
-            R_States(i) = 1 - prod(1 - r_impacted);
-            fprintf('State %d (FT):  Components %s -> R = %.4f\n', i, mat2str(comps), R_States(i));
-            
-        otherwise
-            error('نوع معماری ناشناخته است');
+E_mu = zeros(nComp, 1);
+E_mu(transientComp) = N_comp(inputComp, :).';
+E_mu(outputComp) = 1.0;
+InS = E_mu;
+
+%% 3) Eq. (3) and Eq. (4): failure and propagation influence
+% Directed graph adjacency (exclude self-loops from degree calculations).
+adj = (P_comp > 0);
+adj(1:nComp+1:end) = false;
+
+outDegree = sum(adj, 2);
+inDegree = sum(adj, 1).';
+
+InF = zeros(nComp, 1);
+InP = zeros(nComp, 1);
+
+for i = 1:nComp
+    % Requester set A for Ci: all Cj such that Cj -> Ci
+    A = find(adj(:, i));
+    n1 = numel(A);
+    if n1 > 0
+        InF(i) = sum(E_mu(A) ./ outDegree(A)) / n1;
+    end
+
+    % Provider set B for Ci: all Ck such that Ci -> Ck
+    B = find(adj(i, :));
+    n2 = numel(B);
+    if n2 > 0
+        InP(i) = sum(E_mu(B) ./ inDegree(B)) / n2;
     end
 end
 
-% --- 4. ساخت ماتریس انتقال بین وضعیت‌ها (Q_prime) ---
-% حالا که R_States را داریم، باید ماتریس انتقال بین **وضعیت‌ها** را بسازیم.
-% توجه: ماتریس P باید بین Stateها باشد، نه کامپوننت‌ها.
-% فرض می‌کنیم گراف ساده شده به صورت متوالی است (S1 -> S2 -> ... -> S8)
-% برای مثال واقعی باید گراف Stateها (شکل 10 مقاله) را کد کنید.
+%% 4) Eq. (1): component influence lambda_i
+alpha1 = 1/3;
+alpha2 = 1/3;
+phi = alpha1 + alpha2;
 
-% ماتریس انتقال فرضی بین وضعیت‌ها (State Transition Probability)
-P_states = zeros(n_states, n_states);
-% اتصال خطی برای مثال: 1->2, 2->3, ...
-for i = 1:n_states-1
-    P_states(i, i+1) = 1.0; 
+lambda = alpha1 .* InF + alpha2 .* InP + (1 - phi) .* InS;
+
+% Section 3.2 note: for input/output components, self-influence dominates.
+lambda([inputComp, outputComp]) = InS([inputComp, outputComp]);
+
+%% 5) Architecture mapping and state reliabilities (Eq. 5, 6, 7)
+% User-required mapping:
+% - Parallel (Eq. 6): C2, C3
+% - Fault tolerance (Eq. 7): C4, C5
+% - Sequence (Eq. 5): all other components
+stateNames = {'S1','S23','ST45','S6','S7','S8','S9','S10'};
+stateTypes = {'sequence','parallel','fault_tolerance','sequence','sequence','sequence','sequence','sequence'};
+stateComps = { [1], [2 3], [4 5], [6], [7], [8], [9], [10] };
+
+nStates = numel(stateNames);
+R_state = zeros(nStates, 1);
+
+for s = 1:nStates
+    comps = stateComps{s};
+    r_vals = r_base(comps);
+    l_vals = lambda(comps);
+    r_impacted = r_vals .^ l_vals;
+
+    switch stateTypes{s}
+        case 'sequence' % Eq. (5)
+            R_state(s) = prod(r_impacted);
+        case 'parallel' % Eq. (6)
+            R_state(s) = prod(r_impacted);
+        case 'fault_tolerance' % Eq. (7) - recovery block / interrupt FT
+            R_state(s) = 1 - prod(1 - r_impacted);
+        otherwise
+            error('Unknown state type: %s', stateTypes{s});
+    end
 end
 
-% ساخت ماتریس Q' (قانون 3 و معادله 9 مقاله)
-% Q'(i,j) = R_State(i) * P_states(i,j)
-Q_prime = zeros(n_states, n_states);
-for i = 1:n_states
-    for j = 1:n_states
-        if P_states(i,j) > 0
-            Q_prime(i,j) = R_States(i) * P_states(i,j);
+%% 6) State transition probabilities from banking global-state model
+% Figure 10 structure adapted to user-requested mapping:
+% S1 -> S23 -> ST45 -> {S6,S7,S8}; {S6,S7,S8} -> S9 -> {S6,S7,S8}; and
+% {S6,S7,S8} -> S10 (final absorbing success state).
+S = struct('S1',1,'S23',2,'ST45',3,'S6',4,'S7',5,'S8',6,'S9',7,'S10',8);
+P_state = zeros(nStates, nStates);
+
+P_state(S.S1,  S.S23)  = 1.00;
+P_state(S.S23, S.ST45) = 1.00;
+P_state(S.ST45,S.S6)   = 0.40;
+P_state(S.ST45,S.S7)   = 0.40;
+P_state(S.ST45,S.S8)   = 0.20;
+P_state(S.S6,  S.S9)   = 0.75;
+P_state(S.S6,  S.S10)  = 0.25;
+P_state(S.S7,  S.S9)   = 0.75;
+P_state(S.S7,  S.S10)  = 0.25;
+P_state(S.S8,  S.S9)   = 0.75;
+P_state(S.S8,  S.S10)  = 0.25;
+P_state(S.S9,  S.S6)   = 1/3;
+P_state(S.S9,  S.S7)   = 1/3;
+P_state(S.S9,  S.S8)   = 1/3;
+% Final state S10 has no outgoing transitions in Eq. (12) matrix form.
+
+nonTerminal = [S.S1, S.S23, S.ST45, S.S6, S.S7, S.S8, S.S9];
+rowSumsState = sum(P_state(nonTerminal, :), 2);
+assert(all(abs(rowSumsState - 1.0) < 1e-12), 'State transition rows must sum to 1.');
+
+%% 7) Eq. (9): build one-step successful-transition matrix Q'
+% Type 1 transitions (caller -> responder) are NOT multiplied by R_i.
+type1 = false(nStates, nStates);
+type1(S.S6, S.S9) = true;
+type1(S.S7, S.S9) = true;
+type1(S.S8, S.S9) = true;
+
+Q_prime = zeros(nStates, nStates);
+for i = 1:nStates
+    for j = 1:nStates
+        if P_state(i,j) <= 0
+            continue;
+        end
+        if type1(i,j)
+            Q_prime(i,j) = P_state(i,j);           % Rule 2
+        else
+            Q_prime(i,j) = R_state(i) * P_state(i,j); % Rule 3
         end
     end
 end
 
-% --- 5. محاسبه نهایی قابلیت اطمینان سیستم (معادله 12) ---
-% حذف سطر و ستون آخر برای محاسبه ماتریس بنیادی (زیرا وضعیت آخر Absorbing است)
-Q_reduced = Q_prime(1:end-1, 1:end-1);
-I = eye(size(Q_reduced));
+%% 8) Eq. (12): final system reliability at absorbing end state
+% RS = (-1)^(m+1) * R_m^+ * |E'| / |I - Q'|
+m = nStates;
+A = eye(m) - Q_prime;
+E_prime = A(1:end-1, 2:end); % remove last row, first column
 
-% فرمول حل ماتریسی: R_sys = (I - Q')^-1 * R_last_transient
-% محاسبه احتمال رسیدن به وضعیت آخر
-Fundamental_Matrix = inv(I - Q_reduced);
+den = det(A);
+if abs(den) < 1e-14
+    error('det(I - Q'') is numerically zero; Eq. (12) is not solvable.');
+end
 
-% فرض می‌کنیم آخرین وضعیت (S8) هدف نهایی است
-% بردار احتمال ورود به وضعیت نهایی از وضعیت‌های قبلی
-R_to_end = Q_prime(1:end-1, end); 
+R_end = R_state(S.S10);
+R_system = ((-1)^(m + 1)) * R_end * det(E_prime) / den;
 
-% قابلیت اطمینان کل (احتمال جذب در وضعیت موفقیت)
-R_System_Vector = Fundamental_Matrix * R_to_end;
-R_System_Final = R_System_Vector(1); % شروع از وضعیت 1
+% Cross-check: absorbing probability to S10 times end-state reliability.
+Q_t = Q_prime(1:end-1, 1:end-1);
+b_t = Q_prime(1:end-1, end);
+reach_end = (eye(m-1) - Q_t) \ b_t;
+R_system_check = R_end * reach_end(1);
 
-fprintf('\nقابلیت اطمینان نهایی سیستم: %.6f\n', R_System_Final);
+%% Report
+fprintf('=== Component Influence (Eq. 1-4) ===\n');
+fprintf('Comp   E(mu)      InF         InP         lambda\n');
+for i = 1:nComp
+    fprintf('%-4s  %8.6f  %10.6f  %10.6f  %10.6f\n', ...
+        componentNames{i}, E_mu(i), InF(i), InP(i), lambda(i));
+end
+
+fprintf('\n=== State Reliabilities (Eq. 5/6/7) ===\n');
+for s = 1:nStates
+    fprintf('%-5s %-15s R = %.10f\n', stateNames{s}, stateTypes{s}, R_state(s));
+end
+
+fprintf('\n=== Final System Reliability (Eq. 12) ===\n');
+fprintf('R_system (Eq. 12)       = %.10f\n', R_system);
+fprintf('R_system (cross-check)  = %.10f\n', R_system_check);
