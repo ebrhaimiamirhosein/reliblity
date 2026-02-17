@@ -12,13 +12,10 @@ outputComp = 10; % C10
 assert(nComp == 10, 'This implementation is for the 10-component banking system.');
 
 %% 1) Component-level DTMC for Eq. (2) visitation counts
-% Transition probabilities are built from the banking-system case study.
-% Micro-adjustment requested by user:
-%   - C1 branching is forced symmetric (0.5/0.5).
-% Other branch probabilities remain as paper values where explicitly given.
+% Exact transition probabilities from Table 2 of the banking case.
 P_comp = zeros(nComp, nComp);
 
-P_comp(1,2) = 0.50; P_comp(1,3) = 0.50;
+P_comp(1,2) = 0.49; P_comp(1,3) = 0.51;
 P_comp(2,4) = 0.50; P_comp(2,5) = 0.50;
 P_comp(3,4) = 0.50; P_comp(3,5) = 0.50;
 P_comp(4,6) = 0.40; P_comp(4,7) = 0.40; P_comp(4,8) = 0.20;
@@ -42,7 +39,9 @@ E_mu(transientComp) = N_comp(inputComp, :).';
 E_mu(outputComp) = 1.0;
 
 % Optional self-influence normalization check.
-% Keep 'none' for paper-consistent computation.
+% Section 4.1 reports normalized component influence values, but does not
+% provide a normalization formula for InS directly. Keep 'none' to preserve
+% Eq. (2) as defined using fundamental-matrix visitation counts.
 selfInfluenceMode = 'none'; % {'none','by_total','by_max','cap1'}
 switch selfInfluenceMode
     case 'none'
@@ -85,10 +84,9 @@ for i = 1:nComp
 end
 
 %% 4) Eq. (1): component influence lambda_i
-% Paper reports alpha1 = alpha2 = 1/3 for the case study.
-% Micro-adjustment requested by user: slightly tune weights.
-alpha1 = 0.33;
-alpha2 = 0.37;
+% Paper case-study setting (Section 4.1): alpha1 = alpha2 = 1/3.
+alpha1 = 1/3;
+alpha2 = 1/3;
 phi = alpha1 + alpha2;
 
 lambda = alpha1 .* InF + alpha2 .* InP + (1 - phi) .* InS;
@@ -97,13 +95,13 @@ lambda = alpha1 .* InF + alpha2 .* InP + (1 - phi) .* InS;
 lambda([inputComp, outputComp]) = InS([inputComp, outputComp]);
 
 %% 5) Architecture mapping and state reliabilities (Eq. 5, 6, 7)
-% User-required mapping:
-% - Parallel (Eq. 6): C2, C3
-% - Fault tolerance (Eq. 7): C4, C5
-% - Sequence (Eq. 5): all other components
-stateNames = {'S1','S23','ST45','S6','S7','S8','S9','S10'};
-stateTypes = {'sequence','parallel','fault_tolerance','sequence','sequence','sequence','sequence','sequence'};
-stateComps = { [1], [2 3], [4 5], [6], [7], [8], [9], [10] };
+% Exact banking-case state mapping from Section 4.1 / Table 3 / Fig. 10:
+% - ST = {C4,C5} interrupt fault-tolerance (Eq. 7)
+% - SP = {C6,C7} parallel (Eq. 6)
+% - all other states are sequence (Eq. 5)
+stateNames = {'S1','S2','S3','ST','SP','S8','S9','S10'};
+stateTypes = {'sequence','sequence','sequence','fault_tolerance','parallel','sequence','sequence','sequence'};
+stateComps = { [1], [2], [3], [4 5], [6 7], [8], [9], [10] };
 
 nStates = numel(stateNames);
 R_state = zeros(nStates, 1);
@@ -127,29 +125,26 @@ for s = 1:nStates
 end
 
 %% 6) State transition probabilities from banking global-state model
-% Figure 10 structure adapted to user-requested mapping:
-% S1 -> S23 -> ST45 -> {S6,S7,S8}; {S6,S7,S8} -> S9 -> {S6,S7,S8}; and
-% {S6,S7,S8} -> S10 (final absorbing success state).
-S = struct('S1',1,'S23',2,'ST45',3,'S6',4,'S7',5,'S8',6,'S9',7,'S10',8);
+% Exact Figure 10 banking global-state model.
+% S1 -> {S2,S3} -> ST -> {SP,S8} -> {S9,S10}; S9 -> {SP,S8}.
+S = struct('S1',1,'S2',2,'S3',3,'ST',4,'SP',5,'S8',6,'S9',7,'S10',8);
 P_state = zeros(nStates, nStates);
 
-P_state(S.S1,  S.S23)  = 1.00;
-P_state(S.S23, S.ST45) = 1.00;
-P_state(S.ST45,S.S6)   = 0.40;
-P_state(S.ST45,S.S7)   = 0.40;
-P_state(S.ST45,S.S8)   = 0.20;
-P_state(S.S6,  S.S9)   = 0.75;
-P_state(S.S6,  S.S10)  = 0.25;
-P_state(S.S7,  S.S9)   = 0.75;
-P_state(S.S7,  S.S10)  = 0.25;
+P_state(S.S1, S.S2)    = 0.49;
+P_state(S.S1, S.S3)    = 0.51;
+P_state(S.S2, S.ST)    = 1.00;
+P_state(S.S3, S.ST)    = 1.00;
+P_state(S.ST, S.SP)    = 0.80;
+P_state(S.ST, S.S8)    = 0.20;
+P_state(S.SP, S.S9)    = 0.75;
+P_state(S.SP, S.S10)   = 0.25;
 P_state(S.S8,  S.S9)   = 0.75;
 P_state(S.S8,  S.S10)  = 0.25;
-P_state(S.S9,  S.S6)   = 1/3;
-P_state(S.S9,  S.S7)   = 1/3;
-P_state(S.S9,  S.S8)   = 1/3;
+P_state(S.S9,  S.SP)   = 2/3; % C9->C6 and C9->C7 map to SP
+P_state(S.S9,  S.S8)   = 1/3; % C9->C8 maps to S8
 % Final state S10 has no outgoing transitions in Eq. (12) matrix form.
 
-nonTerminal = [S.S1, S.S23, S.ST45, S.S6, S.S7, S.S8, S.S9];
+nonTerminal = [S.S1, S.S2, S.S3, S.ST, S.SP, S.S8, S.S9];
 rowSumsState = sum(P_state(nonTerminal, :), 2);
 assert(all(abs(rowSumsState - 1.0) < 1e-12), 'State transition rows must sum to 1.');
 
@@ -157,7 +152,8 @@ assert(all(abs(rowSumsState - 1.0) < 1e-12), 'State transition rows must sum to 
 % Rule 2 (Type 1): caller -> responder, S(i,j) = P(i,j)
 % Rule 3 (Types 2..7): otherwise, S(i,j) = R_i * P(i,j)
 %
-% In this banking model, callers are C6/C7/C8 and responder is C9.
+% In the banking system (Section 4.1), requesters are C6, C7, C8 and
+% responder is C9. Therefore Type-1 transitions are SP->S9 and S8->S9.
 requesterComponents = [6 7 8];
 responderComponents = 9;
 isRequesterState = false(nStates, 1);
