@@ -1,0 +1,42 @@
+.yuxiang-share {
+  display: flex;
+}
+.yuxiang-share .yx-share {
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  display: inline-block;
+  background-size: cover;
+  cursor: pointer;
+}
+.yuxiang-share .yx-share:last-of-type {
+  margin-right: 0;
+}
+.yuxiang-share .wechat {
+  background-image: url('/assets/img/article/share-w-7b6a69b4a90b4b5ddf44c764c0c86ee5.svg');
+  background-size: 22px;
+}
+.yuxiang-share .qq {
+  background-image: url('/assets/img/article/share-q-19b2e02b20e4ca678534e496be142422.svg');
+  background-size: 22px;
+}
+.yuxiang-share .twitter {
+  background-image: url('/assets/img/article/share-t-efea15ed59ab30a6c8cc46315ceffc21.svg');
+  background-size: 22px;
+}
+.yuxiang-share .facebook {
+  background-image: url('/assets/img/article/share-f-64941d2bd5ed9cf086a0d2baa9ccc050.svg');
+  background-size: 22px;
+}
+.yuxiang-share .linkedin {
+  background-image: url('/assets/img/article/share-i-5bfc3d0f6be984acf6c4127bb038f04b.svg');
+  background-size: 22px;
+}
+.yuxiang-share .microblog {
+  background-image: url('/assets/img/article/share-b-966bbfbff6012446bcb2de637ba2e301.svg');
+  background-size: 22px;
+}
+#qrcode img {
+  margin: 50px auto;
+}
+/*# sourceMappingURL=yxshare.css.map */

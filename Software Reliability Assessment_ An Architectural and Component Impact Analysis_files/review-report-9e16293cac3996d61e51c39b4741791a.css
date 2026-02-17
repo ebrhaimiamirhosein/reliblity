@@ -1,0 +1,457 @@
+#version {
+  display: none;
+  float: right;
+}
+#version select {
+  padding: 3px 6px;
+  height: 28px;
+}
+.review-report-main {
+  padding: 10px;
+  margin-top: 15px;
+  border: 1px solid #ddd;
+}
+.review-report-main #review-gs {
+  display: block;
+}
+.review-report-main #review-xq {
+  display: none;
+}
+.review-report-main h3 {
+  font-size: 14px;
+  font-family: 'Inter-Semibold';
+  line-height: 24px;
+}
+.review-report-main h3 .tooltip-inner {
+  width: 300px !important;
+  text-align: left;
+  z-index: 1000;
+  font-size: 12px;
+  max-width: 300px;
+}
+.review-report-main .review-status {
+  font-size: 14px;
+  font-family: 'Inter-Light';
+  margin-top: 5px;
+  line-height: 18px;
+}
+.review-report-main h4 {
+  font-size: 14px;
+  font-family: 'Inter-Semibold';
+  margin-top: 5px;
+  line-height: 18px;
+}
+.review-report-main .review-table {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 10px;
+}
+.review-report-main table {
+  border-top: 1px solid #ddd;
+  border-left: 1px solid #ddd;
+  min-width: 100%;
+}
+.review-report-main table tr.current {
+  background-color: #e4efff;
+}
+.review-report-main table th,
+.review-report-main table td {
+  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+  padding: 5px 6px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.review-report-main table th:first-of-type,
+.review-report-main table td:first-of-type {
+  text-align: left;
+}
+.review-report-main table th img,
+.review-report-main table td img {
+  width: 18px;
+}
+.review-report-main table th a,
+.review-report-main table td a {
+  font-size: 14px;
+  line-height: 20px;
+  text-decoration: underline;
+  font-family: 'Inter-Regular';
+  cursor: pointer;
+  color: #3E65D8;
+}
+.review-report-main .review-author {
+  margin-top: 10px;
+}
+.review-report-main .review-author .review-author-item {
+  margin-bottom: 5px;
+  font-family: 'Inter-Light';
+  font-size: 14px;
+  line-height: 20px;
+}
+.review-report-main .review-author .review-author-item .review-author-item-name {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  line-height: 20px;
+}
+.review-report-main .review-author .review-author-item label {
+  font-weight: normal;
+  margin: 0;
+  padding-right: 5px;
+}
+.review-report-main .review-author .review-author-item * {
+  font-size: 14px;
+  font-family: 'Inter-Light';
+}
+.review-report-main .review-author .review-author-item strong {
+  font-family: 'Inter-Bold';
+}
+.review-report-main .review-comment {
+  border-top: 1px solid #ddd;
+  margin-top: 10px;
+  padding-top: 8px;
+}
+.review-report-main .review-comment .review-comments-num {
+  margin-bottom: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.review-report-main .review-comment .review-comments-num.review-comment-cite-img {
+  background: url("/assets/img/article/comment-link-50d9dcd371148244dda2f71a933ce652.png") no-repeat left 2px;
+  background-size: 18px 18px;
+  padding-left: 22px;
+}
+.review-report-main .review-comment .review-comments-num.review-comment-pdf-img {
+  background: url("/assets/img/article/comment-pdf-92a6ca2c2b0120348fc9e712aa0c2b69.png") no-repeat 1px 4px;
+  background-size: 16px 16px;
+  padding-left: 22px;
+  word-break: break-all;
+}
+.review-report-main .review-comment .review-comments-num a {
+  color: #3E65D8;
+  font-size: 14px;
+}
+.review-report-main .review-comment button {
+  width: 100%;
+  border: 1px solid #3E65D8;
+  color: #fff;
+  background-color: #3E65D8;
+  font-size: 14px;
+  border-radius: 4px;
+  height: 34px;
+  padding: 0;
+}
+.review-report-main .review-result .review-result-item .tooltip-inner {
+  width: 300px !important;
+  text-align: left;
+  z-index: 1000;
+  font-size: 12px;
+  max-width: 300px;
+}
+.review-report-main .review-result > div {
+  margin-top: 3px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Inter-Light';
+}
+.review-report-main .review-result > div span {
+  display: flex;
+}
+.review-report-main .review-result > div span img {
+  width: 16px;
+}
+.review-report-main .review-result > div span img {
+  margin-right: 5px;
+}
+.review-report-main .review-result > div:last-of-type {
+  font-family: 'Inter-Light';
+}
+.review-report-main .review-result > div:last-of-type span a {
+  color: #3E65D8;
+  cursor: pointer;
+}
+.review-report-main .review-detail {
+  border-top: 1px solid #ddd;
+  max-height: 400px;
+  overflow: auto;
+  padding: 15px 0;
+}
+.review-confirm {
+  padding-bottom: 40px !important;
+  max-width: 100%;
+}
+.review-confirm .el-message-box__message p {
+  font-family: 'Inter-Regular';
+  text-align: left;
+}
+.review-confirm .el-button {
+  margin-bottom: 10px;
+}
+.review-confirm .el-button span {
+  font-family: 'Inter-Regular';
+}
+.comment-main {
+  max-width: 100%;
+}
+.comment-main .el-dialog__body {
+  padding: 10px 40px 0;
+}
+.comment-main .el-dialog__footer {
+  padding-bottom: 30px;
+  padding-right: 40px;
+}
+.comment-main .comment-list {
+  max-height: 400px;
+  overflow: auto;
+}
+.comment-main .comment-list .comment-item {
+  border: 1px solid #ddd;
+  padding: 15px 15px;
+  margin: 15px 0;
+  font-family: 'Inter-Regular';
+  line-height: 26px;
+  cursor: pointer;
+  height: 56px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cite-main .el-dialog__body {
+  padding: 20px;
+}
+.cite-main .cite-main-content {
+  border: 1px solid #ddd;
+  padding: 15px 20px;
+}
+#review_content p {
+  margin-bottom: 15px;
+}
+#review_content h4 {
+  font-family: 'Inter-Semibold';
+  font-size: 18px;
+  margin: 10px 0;
+  color: #444;
+  line-height: 28px;
+}
+#review_content p,
+#review_content span {
+  line-height: 26px;
+  font-size: 15px;
+  font-family: 'Inter-Regular';
+}
+#review_content p.html-table,
+#review_content span.html-table {
+  font-size: 14px;
+}
+#review_content .MathJax_Display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+}
+#review_content .MathJax span {
+  font-size: unset;
+}
+#review_content fig p {
+  font-family: 'Inter-Light';
+}
+#review_content def-list def-item {
+  margin: 5px 0;
+  float: left;
+  width: 100%;
+}
+#review_content def-list def-item term {
+  width: 25%;
+  float: left;
+  box-sizing: border-box;
+}
+#review_content def-list def-item def {
+  width: 75%;
+  float: left;
+}
+#review_content #article_references {
+  margin-bottom: 20px;
+}
+#review_content .v4-art-reference-item {
+  display: flex;
+  align-items: baseline;
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-index {
+  color: #3158fa;
+  flex-shrink: 0;
+  margin-right: 5px;
+  font-size: 16px;
+  line-height: 24px;
+  font-family: 'Inter-Light';
+  cursor: pointer;
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-index img {
+  flex-shrink: 0;
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-index-not {
+  color: #333;
+  cursor: default;
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-title {
+  font-size: 16px;
+  line-height: 24px;
+  font-family: 'Inter-Light';
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-title p,
+#review_content .v4-art-reference-item .v4-art-reference-item-title div,
+#review_content .v4-art-reference-item .v4-art-reference-item-title span,
+#review_content .v4-art-reference-item .v4-art-reference-item-title a {
+  font-family: 'Inter-Light';
+  padding: 0;
+  margin: 0;
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-title a {
+  color: #3158fa;
+}
+#review_content .v4-art-reference-item .v4-art-reference-item-title pub-id {
+  word-break: break-all;
+}
+#review_content .v4-art-reference-item-pos {
+  text-align: right;
+  margin-top: 10px;
+  color: #3158fa;
+}
+#review_content .v4-art-reference-item-pos a {
+  color: #3158fa;
+  font-family: 'Inter-Regular';
+}
+#review_content sup,
+#review_content sub {
+  white-space: nowrap;
+}
+#review_content img {
+  max-width: 90%;
+  margin: 10px 0;
+  display: block;
+  cursor: pointer;
+}
+#review_content img.inline-graphic {
+  margin: 0;
+  display: inline;
+  cursor: inherit;
+}
+#review_content fig img,
+#review_content td img {
+  max-width: 100%;
+  margin: 0;
+}
+#review_content .html-table-content {
+  margin-bottom: 22px;
+}
+#review_content .html-table {
+  margin-bottom: 10px;
+}
+#review_content .html-table label {
+  font-family: 'Inter-Bold';
+}
+#review_content .html-table-main {
+  max-width: 100%;
+  max-height: 600px;
+  overflow: auto;
+  margin-bottom: 10px;
+}
+#review_content .html-table-main label {
+  cursor: pointer;
+}
+#review_content .html-table-main table thead {
+  white-space: nowrap;
+}
+#review_content .html-table-main table td {
+  font-size: 13px;
+}
+#review_content .html-table-main table td break {
+  display: block;
+}
+#review_content .html-table-main table tfoot td {
+  font-size: 12px;
+}
+#review_content table {
+  width: 100%;
+  margin: 0 auto;
+  min-width: 400px;
+  overflow: auto;
+  border: 1px solid #999;
+}
+#review_content table td {
+  padding: 5px;
+  border: 1px solid #000;
+}
+#review_content table td sup,
+#review_content table td sub {
+  white-space: nowrap;
+}
+#review_content title {
+  display: block;
+}
+#review_content label {
+  padding-right: 3px;
+  margin-bottom: 0;
+}
+#review_content object-id {
+  display: none;
+}
+#review_content fig label {
+  cursor: pointer;
+  font-family: 'Inter-Bold';
+}
+#review_content fig p {
+  font-size: 14px;
+  line-height: 22px;
+  text-indent: 0;
+}
+#review_content xref[ref-type='table'],
+#review_content xref[ref-type='fig'],
+#review_content xref[ref-type='sec'],
+#review_content xref[ref-type='disp-formula'],
+#review_content xref[ref-type='bibr'],
+#review_content xref[ref-type='fn'] {
+  cursor: pointer;
+  color: #337ab7;
+}
+#review_content xref[ref-type='table']:hover,
+#review_content xref[ref-type='fig']:hover,
+#review_content xref[ref-type='sec']:hover,
+#review_content xref[ref-type='disp-formula']:hover,
+#review_content xref[ref-type='bibr']:hover,
+#review_content xref[ref-type='fn']:hover {
+  color: #e9711c !important;
+  text-decoration: underline;
+}
+#review_content disp-formula-group label {
+  float: right;
+}
+#review_content disp-formula {
+  display: flex;
+  flex-direction: row-reverse;
+}
+#review_content disp-formula label {
+  float: right;
+  align-self: center;
+  padding-left: 10px;
+  padding-bottom: 10px;
+}
+#review_content boxed-text {
+  border: 1px solid #000;
+  display: block;
+  padding: 10px 15px 0;
+  margin-bottom: 10px;
+}
+#review_content boxed-text title {
+  font-weight: bold;
+}
+#review_content .v4-art-table {
+  color: #3573bc;
+  font-size: 14px;
+  font-family: 'Inter-SemiBold';
+  line-height: 24px;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 80px;
+}
+/*# sourceMappingURL=review-report.css.map */
