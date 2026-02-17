@@ -12,11 +12,13 @@ outputComp = 10; % C10
 assert(nComp == 10, 'This implementation is for the 10-component banking system.');
 
 %% 1) Component-level DTMC for Eq. (2) visitation counts
-% Transition probabilities are built from the banking-system case study
-% (Table 2 + Figure 10 flow consistency), row-stochastic for DTMC use.
+% Transition probabilities are built from the banking-system case study.
+% Micro-adjustment requested by user:
+%   - C1 branching is forced symmetric (0.5/0.5).
+% Other branch probabilities remain as paper values where explicitly given.
 P_comp = zeros(nComp, nComp);
 
-P_comp(1,2) = 0.49; P_comp(1,3) = 0.51;
+P_comp(1,2) = 0.50; P_comp(1,3) = 0.50;
 P_comp(2,4) = 0.50; P_comp(2,5) = 0.50;
 P_comp(3,4) = 0.50; P_comp(3,5) = 0.50;
 P_comp(4,6) = 0.40; P_comp(4,7) = 0.40; P_comp(4,8) = 0.20;
@@ -38,7 +40,22 @@ N_comp = inv(eye(numel(transientComp)) - Q_comp);
 E_mu = zeros(nComp, 1);
 E_mu(transientComp) = N_comp(inputComp, :).';
 E_mu(outputComp) = 1.0;
-InS = E_mu;
+
+% Optional self-influence normalization check.
+% Keep 'none' for paper-consistent computation.
+selfInfluenceMode = 'none'; % {'none','by_total','by_max','cap1'}
+switch selfInfluenceMode
+    case 'none'
+        InS = E_mu;
+    case 'by_total'
+        InS = E_mu / sum(E_mu);
+    case 'by_max'
+        InS = E_mu / max(E_mu);
+    case 'cap1'
+        InS = min(E_mu, 1.0);
+    otherwise
+        error('Unknown selfInfluenceMode: %s', selfInfluenceMode);
+end
 
 %% 3) Eq. (3) and Eq. (4): failure and propagation influence
 % Directed graph adjacency (exclude self-loops from degree calculations).
@@ -56,20 +73,22 @@ for i = 1:nComp
     A = find(adj(:, i));
     n1 = numel(A);
     if n1 > 0
-        InF(i) = sum(E_mu(A) ./ outDegree(A)) / n1;
+        InF(i) = sum(InS(A) ./ outDegree(A)) / n1;
     end
 
     % Provider set B for Ci: all Ck such that Ci -> Ck
     B = find(adj(i, :));
     n2 = numel(B);
     if n2 > 0
-        InP(i) = sum(E_mu(B) ./ inDegree(B)) / n2;
+        InP(i) = sum(InS(B) ./ inDegree(B)) / n2;
     end
 end
 
 %% 4) Eq. (1): component influence lambda_i
-alpha1 = 1/3;
-alpha2 = 1/3;
+% Paper reports alpha1 = alpha2 = 1/3 for the case study.
+% Micro-adjustment requested by user: slightly tune weights.
+alpha1 = 0.33;
+alpha2 = 0.37;
 phi = alpha1 + alpha2;
 
 lambda = alpha1 .* InF + alpha2 .* InP + (1 - phi) .* InS;
@@ -135,11 +154,22 @@ rowSumsState = sum(P_state(nonTerminal, :), 2);
 assert(all(abs(rowSumsState - 1.0) < 1e-12), 'State transition rows must sum to 1.');
 
 %% 7) Eq. (9): build one-step successful-transition matrix Q'
-% Type 1 transitions (caller -> responder) are NOT multiplied by R_i.
-type1 = false(nStates, nStates);
-type1(S.S6, S.S9) = true;
-type1(S.S7, S.S9) = true;
-type1(S.S8, S.S9) = true;
+% Rule 2 (Type 1): caller -> responder, S(i,j) = P(i,j)
+% Rule 3 (Types 2..7): otherwise, S(i,j) = R_i * P(i,j)
+%
+% In this banking model, callers are C6/C7/C8 and responder is C9.
+requesterComponents = [6 7 8];
+responderComponents = 9;
+isRequesterState = false(nStates, 1);
+isResponderState = false(nStates, 1);
+
+for s = 1:nStates
+    comps = stateComps{s};
+    isRequesterState(s) = any(ismember(comps, requesterComponents));
+    isResponderState(s) = any(ismember(comps, responderComponents));
+end
+
+type1 = (isRequesterState * isResponderState.') & (P_state > 0);
 
 Q_prime = zeros(nStates, nStates);
 for i = 1:nStates
@@ -191,3 +221,5 @@ end
 fprintf('\n=== Final System Reliability (Eq. 12) ===\n');
 fprintf('R_system (Eq. 12)       = %.10f\n', R_system);
 fprintf('R_system (cross-check)  = %.10f\n', R_system_check);
+fprintf('Settings: alpha1=%.2f, alpha2=%.2f, selfInfluenceMode=%s\n', ...
+    alpha1, alpha2, selfInfluenceMode);
